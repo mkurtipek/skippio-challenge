@@ -1,0 +1,209 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font: 14px/1.5 system-ui, -apple-system, sans-serif;
+  color: #1f2328;
+  background: #f4f5f7;
+}
+
+main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+h1 {
+  font-size: 20px;
+}
+
+h2 {
+  margin-top: 0;
+  font-size: 16px;
+}
+
+h3 {
+  font-size: 14px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #d8dbe0;
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.inline {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+input {
+  font: inherit;
+  padding: 6px 8px;
+  border: 1px solid #c4c8ce;
+  border-radius: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+input[readonly] {
+  background: #f4f5f7;
+  color: #57606a;
+}
+
+button {
+  font: inherit;
+  padding: 6px 12px;
+  border: 1px solid #c4c8ce;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.primary,
+nav button.active {
+  background: #1f6feb;
+  border-color: #1f6feb;
+  color: #fff;
+}
+
+nav {
+  display: flex;
+  gap: 8px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 6px;
+  border-bottom: 1px solid #eaecef;
+}
+
+.num {
+  text-align: right;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.hint {
+  color: #57606a;
+  font-size: 13px;
+}
+
+.feedback {
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+.feedback.success {
+  background: #dafbe1;
+  color: #116329;
+}
+
+.feedback.error {
+  background: #ffebe9;
+  color: #a40e26;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+}
+
+dt {
+  color: #57606a;
+}
+
+dd {
+  margin: 0;
+}
+
+.badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #eaecef;
+}
+
+.badge.paid,
+.badge.synced {
+  background: #dafbe1;
+  color: #116329;
+}
+
+.badge.failed {
+  background: #ffebe9;
+  color: #a40e26;
+}
+
+.badge.syncing,
+.badge.pending {
+  background: #fff8c5;
+  color: #7d4e00;
+}
+
+.badge.refunded {
+  background: #ddf4ff;
+  color: #0550ae;
+}
+
+pre {
+  background: #f6f8fa;
+  padding: 12px;
+  border-radius: 6px;
+  overflow: auto;
+  font-size: 12px;
+}
