@@ -46,13 +46,23 @@ export function createApp(options: { pos?: PosOptions } = {}) {
     });
   });
 
+  app.use((_req, res) => {
+    res.status(404).json({ error: 'not_found', message: 'Route not found' });
+  });
+
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     if (err instanceof AppError) {
       res.status(err.status).json({ error: err.code, message: err.message, ...err.extra });
       return;
     }
-    if (err instanceof SyntaxError) {
-      res.status(400).json({ error: 'invalid_json', message: 'Request body is not valid JSON' });
+    // Errors from express.json(): malformed JSON (400), body too large (413), unsupported charset (415).
+    const status = (err as { status?: unknown })?.status;
+    if (typeof status === 'number' && status >= 400 && status < 500) {
+      const invalidJson = status === 400;
+      res.status(status).json({
+        error: invalidJson ? 'invalid_json' : 'invalid_request',
+        message: invalidJson ? 'Request body is not valid JSON' : (err as Error).message,
+      });
       return;
     }
     console.error(err);

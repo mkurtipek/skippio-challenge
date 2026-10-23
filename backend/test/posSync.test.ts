@@ -41,7 +41,7 @@ describe('POS sync', () => {
     expect(pos.transactions).toHaveLength(1);
   });
 
-  it('3a. overlapping payment events -> one POS call, and the calls really overlap', async () => {
+  it('3a. overlapping payment events -> one POS call; the second event arrives while it is in flight', async () => {
     const { app, pos } = setup({ failuresBeforeSuccess: 0, latencyMs: 100 });
 
     const responses = await Promise.all([
@@ -49,6 +49,7 @@ describe('POS sync', () => {
       request(app).post('/payment-events').send(makeEvent({ eventId: 'evt_002' })),
     ]);
 
+    expect(responses.map((r) => r.status).sort()).toEqual([200, 201]);
     const created = responses.find((r) => r.status === 201)!;
     const duplicate = responses.find((r) => r.status === 200)!;
     expect(created.body.order.pos.status).toBe('synced');

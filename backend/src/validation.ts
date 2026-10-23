@@ -39,9 +39,10 @@ export function validatePaymentEvent(body: unknown): Result {
 
   if (errors.length > 0) return { ok: false, errors };
 
-  // Copy only known fields so unexpected input is never stored.
+  // Copy only known fields so unexpected input is never stored. IDs are trimmed
+  // so "ord_001 " and "ord_001" are the same order.
   const items: OrderItem[] = (order.items as OrderItem[]).map(({ productId, quantity, price }) => ({
-    productId,
+    productId: productId.trim(),
     quantity,
     price,
   }));
@@ -53,11 +54,11 @@ export function validatePaymentEvent(body: unknown): Result {
   return {
     ok: true,
     event: {
-      eventId: body.eventId as string,
+      eventId: (body.eventId as string).trim(),
       type: 'payment.succeeded',
       order: {
-        id: order.id as string,
-        venueId: order.venueId as string,
+        id: (order.id as string).trim(),
+        venueId: (order.venueId as string).trim(),
         currency: 'EUR',
         items,
         total: calculated,

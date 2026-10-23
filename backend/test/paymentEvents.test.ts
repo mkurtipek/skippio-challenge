@@ -31,6 +31,31 @@ describe('POST /payment-events', () => {
     expect(ctx.store.list()).toHaveLength(1);
   });
 
+  it('trims IDs, so whitespace does not create a second order', async () => {
+    await request(ctx.app).post('/payment-events').send(makeEvent());
+    const res = await request(ctx.app)
+      .post('/payment-events')
+      .send(makeEvent({ eventId: ' evt_002 ', order: { id: ' ord_001 ' } }));
+
+    expect(res.status).toBe(200);
+    expect(res.body.order.eventIds).toEqual(['evt_001', 'evt_002']);
+    expect(ctx.store.list()).toHaveLength(1);
+    expect(ctx.pos.calls).toHaveLength(1);
+  });
+
+  it('rejects an invalid total for an existing order without changing it or its POS record', async () => {
+    await request(ctx.app).post('/payment-events').send(makeEvent());
+    const before = structuredClone(ctx.store.get('ord_001'));
+
+    const res = await request(ctx.app)
+      .post('/payment-events')
+      .send(makeEvent({ eventId: 'evt_002', order: { total: 9999 } }));
+
+    expect(res.status).toBe(400);
+    expect(ctx.store.get('ord_001')).toEqual(before);
+    expect(ctx.pos.calls).toHaveLength(1);
+  });
+
   it('rejects an invalid total without creating an order', async () => {
     const res = await request(ctx.app).post('/payment-events').send(makeEvent({ order: { total: 9999 } }));
 
@@ -69,6 +94,22 @@ describe('POST /payment-events', () => {
     expect(res.status).toBe(409);
     expect(res.body.error).toBe('order_conflict');
     expect(ctx.store.get('ord_001')).toEqual(before);
+  });
+});
+
+describe('request errors', () => {
+  it('returns JSON errors for malformed JSON, an oversized body and unknown routes', async () => {
+    const malformed = await request(ctx.app).post('/payment-events').set('Content-Type', 'application/json').send('{oops');
+    const tooLarge = await request(ctx.app)
+      .post('/payment-events')
+      .send({ ...makeEvent(), padding: 'x'.repeat(200_000) });
+    const unknown = await request(ctx.app).get('/nope');
+
+    expect(malformed.status).toBe(400);
+    expect(malformed.body.error).toBe('invalid_json');
+    expect(tooLarge.status).toBe(413);
+    expect(unknown.status).toBe(404);
+    expect(unknown.body.error).toBe('not_found');
   });
 });
 
