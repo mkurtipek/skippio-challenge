@@ -1,9 +1,11 @@
-import type { Order, PaymentEvent, PaymentResult, Storage } from './types';
+import type { Order, PaymentEvent, PaymentResult, Storage, SyncResult } from './types';
 
+// body is kept so the UI can use extra fields, e.g. the current order on a 409/502.
 export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    public body: { order?: Order } | null,
   ) {
     super(message);
   }
@@ -19,7 +21,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
   if (!res.ok) {
     const details = Array.isArray(data?.details) ? `: ${data.details.join('; ')}` : '';
-    throw new ApiError(res.status, `${data?.message ?? `Request failed (${res.status})`}${details}`);
+    throw new ApiError(res.status, `${data?.message ?? `Request failed (${res.status})`}${details}`, data);
   }
   return { status: res.status, data: data as T };
 }
@@ -27,6 +29,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 export const api = {
   sendPaymentEvent: (event: PaymentEvent) => request<PaymentResult>('POST', '/payment-events', event),
   getOrder: (id: string) => request<Order>('GET', `/orders/${encodeURIComponent(id)}`),
+  syncOrder: (id: string) => request<SyncResult>('POST', `/orders/${encodeURIComponent(id)}/sync`),
   getStorage: () => request<Storage>('GET', '/debug/storage'),
 };
 

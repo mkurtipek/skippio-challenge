@@ -77,6 +77,58 @@ export function StoragePage() {
             </tbody>
           </table>
 
+          <h3>POS transactions ({storage.pos.transactions.length})</h3>
+          <p className="hint">Accepted sales in the simulated POS. One per order means no duplicates.</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Reference</th>
+                <th>Order</th>
+                <th>Venue</th>
+                <th className="num">Total</th>
+                <th>Created</th>
+              </tr>
+            </thead>
+            <tbody>
+              {storage.pos.transactions.map((t) => (
+                <tr key={t.reference}>
+                  <td>{t.reference}</td>
+                  <td>{t.payload.orderReference}</td>
+                  <td>{t.payload.venueId}</td>
+                  <td className="num">{formatCents(t.payload.total)}</td>
+                  <td>{new Date(t.createdAt).toLocaleTimeString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <h3>POS calls ({storage.pos.calls.length})</h3>
+          <p className="hint">Every call the POS received, including failures.</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Order</th>
+                <th className="num">Attempt</th>
+                <th>Outcome</th>
+                <th>Reference</th>
+                <th>At</th>
+              </tr>
+            </thead>
+            <tbody>
+              {storage.pos.calls.map((c, i) => (
+                <tr key={i}>
+                  <td>{c.orderReference}</td>
+                  <td className="num">{c.attempt}</td>
+                  <td>
+                    <Badge status={c.outcome} />
+                  </td>
+                  <td>{c.reference ?? '—'}</td>
+                  <td>{new Date(c.at).toLocaleTimeString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
           <details>
             <summary>Raw JSON</summary>
             <pre>{JSON.stringify(storage, null, 2)}</pre>

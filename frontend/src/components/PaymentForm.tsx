@@ -2,9 +2,9 @@ import { useState, type FormEvent } from 'react';
 import { api, errorMessage } from '../api';
 import { eurosToCents, formatCents } from '../format';
 import type { Order, PaymentEvent } from '../types';
+import { FeedbackMessage, type Feedback } from './Feedback';
 
 type ItemRow = { productId: string; quantity: string; price: string }; // price typed in euros
-type Feedback = { kind: 'success' | 'error'; text: string } | null;
 
 const newId = (prefix: string) => `${prefix}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -42,13 +42,15 @@ export function PaymentForm({ onOrder }: { onOrder: (order: Order) => void }) {
     setFeedback(null);
     try {
       const { data } = await api.sendPaymentEvent(event);
-      setFeedback({
-        kind: 'success',
-        text:
-          data.result === 'created'
-            ? `Payment recorded. Order ${data.order.id} created.`
-            : `Duplicate event. Order ${data.order.id} already exists, nothing new was created.`,
-      });
+      const { id, pos } = data.order;
+      if (data.result === 'duplicate') {
+        setFeedback({ kind: 'success', text: `Duplicate event. Order ${id} already exists, nothing new was created.` });
+      } else if (pos.status === 'synced') {
+        setFeedback({ kind: 'success', text: `Payment recorded and POS synced (${pos.reference}).` });
+      } else {
+        // Payment and POS outcomes are separate: the payment is safe even if the POS failed.
+        setFeedback({ kind: 'warning', text: `Payment recorded, but POS sync failed: ${pos.lastError}. Retry from the order panel.` });
+      }
       onOrder(data.order);
     } catch (err) {
       setFeedback({ kind: 'error', text: errorMessage(err) });
@@ -178,14 +180,10 @@ export function PaymentForm({ onOrder }: { onOrder: (order: Order) => void }) {
         <button type="submit" className="primary" disabled={loading}>
           {loading ? 'Sending…' : 'Send payment event'}
         </button>
-        <span className="hint">Send again to test duplicates.</span>
+        <span className="hint">Send again to test duplicates. The simulated POS fails each order's first attempt.</span>
       </div>
 
-      {feedback && (
-        <p className={`feedback ${feedback.kind}`} role="status">
-          {feedback.text}
-        </p>
-      )}
+      <FeedbackMessage feedback={feedback} />
     </form>
   );
 }

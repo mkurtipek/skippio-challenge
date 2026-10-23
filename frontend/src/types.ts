@@ -18,6 +18,8 @@ export interface PaymentEvent {
   };
 }
 
+export type PosStatus = 'pending' | 'syncing' | 'synced' | 'failed';
+
 export interface Order {
   id: string;
   venueId: string;
@@ -26,7 +28,7 @@ export interface Order {
   total: number;
   eventIds: string[];
   payment: { status: string };
-  pos: { status: string; attempts: number; reference: string | null; lastError: string | null };
+  pos: { status: PosStatus; attempts: number; reference: string | null; lastError: string | null };
   createdAt: string;
   updatedAt: string;
 }
@@ -36,6 +38,26 @@ export interface PaymentResult {
   order: Order;
 }
 
+export interface SyncResult {
+  result: 'synced' | 'already_synced';
+  order: Order;
+}
+
+export interface PosCall {
+  orderReference: string;
+  attempt: number;
+  outcome: 'accepted' | 'failed';
+  reference: string | null;
+  at: string;
+}
+
+export interface PosTransaction {
+  reference: string;
+  payload: { venueId: string; orderReference: string; total: number };
+  createdAt: string;
+}
+
 export interface Storage {
   orders: Order[];
+  pos: { calls: PosCall[]; transactions: PosTransaction[] };
 }

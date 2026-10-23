@@ -1,34 +1,64 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { api, errorMessage } from '../api';
+import { ApiError, api, errorMessage } from '../api';
 import { formatCents } from '../format';
 import type { Order } from '../types';
+import { FeedbackMessage, type Feedback } from './Feedback';
 
 export const Badge = ({ status }: { status: string }) => <span className={`badge ${status}`}>{status}</span>;
 
 export function OrderPanel({ order, onOrder }: { order: Order | null; onOrder: (order: Order | null) => void }) {
   const [lookupId, setLookupId] = useState('ord_001');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [feedback, setFeedback] = useState<Feedback>(null);
 
-  // Keep the lookup field in sync with the order shown (e.g. after a submit).
+  // When a different order is shown (e.g. after a submit), sync the field and clear old messages.
   useEffect(() => {
-    if (order) setLookupId(order.id);
+    if (order) {
+      setLookupId(order.id);
+      setFeedback(null);
+    }
   }, [order?.id]);
 
   async function lookup(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setError(null);
+    setFeedback(null);
     try {
       const { data } = await api.getOrder(lookupId.trim());
       onOrder(data);
     } catch (err) {
-      setError(errorMessage(err));
+      setFeedback({ kind: 'error', text: errorMessage(err) });
       onOrder(null);
     } finally {
       setLoading(false);
     }
   }
+
+  async function retrySync() {
+    if (!order) return;
+    setSyncing(true);
+    setFeedback(null);
+    try {
+      const { data } = await api.syncOrder(order.id);
+      onOrder(data.order);
+      setFeedback({
+        kind: 'success',
+        text:
+          data.result === 'synced'
+            ? `POS accepted the order (${data.order.pos.reference}).`
+            : 'Already synced. No new POS transaction was created.',
+      });
+    } catch (err) {
+      // 409 / 502 responses carry the current order, so the panel stays accurate.
+      if (err instanceof ApiError && err.body?.order) onOrder(err.body.order);
+      setFeedback({ kind: 'error', text: errorMessage(err) });
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  const canRetry = order !== null && (order.pos.status === 'failed' || order.pos.status === 'pending');
 
   return (
     <section className="card">
@@ -43,12 +73,6 @@ export function OrderPanel({ order, onOrder }: { order: Order | null; onOrder: (
           {loading ? 'Loading…' : 'Look up'}
         </button>
       </form>
-
-      {error && (
-        <p className="feedback error" role="alert">
-          {error}
-        </p>
-      )}
 
       {order && (
         <>
@@ -79,35 +103,46 @@ export function OrderPanel({ order, onOrder }: { order: Order | null; onOrder: (
             <dd>{order.eventIds.join(', ')}</dd>
           </dl>
 
-          <table>
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th className="num">Qty</th>
-                <th className="num">Unit price</th>
-                <th className="num">Line total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {order.items.map((item, i) => (
-                <tr key={i}>
-                  <td>{item.productId}</td>
-                  <td className="num">{item.quantity}</td>
-                  <td className="num">{formatCents(item.price)}</td>
-                  <td className="num">{formatCents(item.quantity * item.price)}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colSpan={3}>Total</td>
-                <td className="num">
-                  <strong>{formatCents(order.total)}</strong>
-                </td>
-              </tr>
-            </tfoot>
-          </table>
+          <div className="actions">
+            <button type="button" className="primary" onClick={retrySync} disabled={!canRetry || syncing}>
+              {syncing ? 'Retrying…' : 'Retry POS sync'}
+            </button>
+            {!canRetry && <span className="hint">Retry is available when the POS sync has failed.</span>}
+          </div>
         </>
+      )}
+
+      <FeedbackMessage feedback={feedback} />
+
+      {order && (
+        <table>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th className="num">Qty</th>
+              <th className="num">Unit price</th>
+              <th className="num">Line total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {order.items.map((item, i) => (
+              <tr key={i}>
+                <td>{item.productId}</td>
+                <td className="num">{item.quantity}</td>
+                <td className="num">{formatCents(item.price)}</td>
+                <td className="num">{formatCents(item.quantity * item.price)}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colSpan={3}>Total</td>
+              <td className="num">
+                <strong>{formatCents(order.total)}</strong>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
       )}
     </section>
   );

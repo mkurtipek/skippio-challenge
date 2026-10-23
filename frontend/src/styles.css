@@ -150,6 +150,11 @@ td {
   color: #116329;
 }
 
+.feedback.warning {
+  background: #fff8c5;
+  color: #7d4e00;
+}
+
 .feedback.error {
   background: #ffebe9;
   color: #a40e26;
@@ -179,7 +184,8 @@ dd {
 }
 
 .badge.paid,
-.badge.synced {
+.badge.synced,
+.badge.accepted {
   background: #dafbe1;
   color: #116329;
 }
