@@ -85,6 +85,14 @@ export function OrderPanel({ order, onOrder }: { order: Order | null; onOrder: (
             <dd>
               <Badge status={order.payment.status} />
             </dd>
+            {order.payment.refund && (
+              <>
+                <dt>Refunded</dt>
+                <dd>
+                  {formatCents(order.payment.refund.amount)} at {new Date(order.payment.refund.refundedAt).toLocaleString()}
+                </dd>
+              </>
+            )}
             <dt>POS</dt>
             <dd>
               <Badge status={order.pos.status} />

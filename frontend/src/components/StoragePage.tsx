@@ -77,6 +77,27 @@ export function StoragePage() {
             </tbody>
           </table>
 
+          <h3>Refunds ({storage.refunds.length})</h3>
+          <p className="hint">Every refund issued. One per order means no double refunds.</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Order</th>
+                <th className="num">Amount</th>
+                <th>Refunded at</th>
+              </tr>
+            </thead>
+            <tbody>
+              {storage.refunds.map((r) => (
+                <tr key={r.orderId}>
+                  <td>{r.orderId}</td>
+                  <td className="num">{formatCents(r.amount)}</td>
+                  <td>{new Date(r.refundedAt).toLocaleTimeString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
           <h3>POS transactions ({storage.pos.transactions.length})</h3>
           <p className="hint">Accepted sales in the simulated POS. One per order means no duplicates.</p>
           <table>

@@ -27,7 +27,7 @@ export interface Order {
   items: OrderItem[];
   total: number;
   eventIds: string[];
-  payment: { status: string };
+  payment: { status: 'paid' | 'refunded'; refund: { amount: number; refundedAt: string } | null };
   pos: { status: PosStatus; attempts: number; reference: string | null; lastError: string | null };
   createdAt: string;
   updatedAt: string;
@@ -57,7 +57,14 @@ export interface PosTransaction {
   createdAt: string;
 }
 
+export interface RefundRecord {
+  orderId: string;
+  amount: number;
+  refundedAt: string;
+}
+
 export interface Storage {
   orders: Order[];
+  refunds: RefundRecord[];
   pos: { calls: PosCall[]; transactions: PosTransaction[] };
 }
