@@ -6,7 +6,7 @@ import { makeEvent } from './helpers';
 let ctx: ReturnType<typeof createApp>;
 
 beforeEach(() => {
-  ctx = createApp();
+  ctx = createApp({ pos: { latencyMs: 0 } });
 });
 
 describe('POST /payment-events', () => {
