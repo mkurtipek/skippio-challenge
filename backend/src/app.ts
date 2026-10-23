@@ -32,9 +32,18 @@ export function createApp(options: { pos?: PosOptions } = {}) {
     res.json(await orders.syncOrder(req.params.orderId));
   });
 
+  // 200 refunded / already_refunded, 404 unknown, 409 not eligible (POS not synced).
+  app.post('/orders/:orderId/refund', (req, res) => {
+    res.json(orders.refundOrder(req.params.orderId));
+  });
+
   // Read-only view of the in-memory storage for the UI "Storage" page.
   app.get('/debug/storage', (_req, res) => {
-    res.json({ orders: store.list(), pos: { calls: pos.calls, transactions: pos.transactions } });
+    res.json({
+      orders: store.list(),
+      refunds: store.listRefunds(),
+      pos: { calls: pos.calls, transactions: pos.transactions },
+    });
   });
 
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {

@@ -20,7 +20,14 @@ export interface PaymentEvent {
   order: OrderInput;
 }
 
-export type PaymentStatus = 'paid';
+// paid:     payment confirmed by the provider
+// refunded: simulated full refund (only after a successful POS sync)
+export type PaymentStatus = 'paid' | 'refunded';
+
+export interface Refund {
+  amount: number;
+  refundedAt: string;
+}
 
 // pending: paid, POS not tried yet
 // syncing: a POS call is in flight (also acts as the lock)
@@ -30,7 +37,7 @@ export type PosStatus = 'pending' | 'syncing' | 'synced' | 'failed';
 
 export interface Order extends OrderInput {
   eventIds: string[];
-  payment: { status: PaymentStatus };
+  payment: { status: PaymentStatus; refund: Refund | null };
   pos: {
     status: PosStatus;
     attempts: number;

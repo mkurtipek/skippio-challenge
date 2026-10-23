@@ -5,6 +5,7 @@ import type { Order, OrderInput, PaymentEvent } from './types';
 
 export type PaymentResult = { result: 'created' | 'duplicate'; order: Order };
 export type SyncResult = { result: 'synced' | 'already_synced'; order: Order };
+export type RefundResult = { result: 'refunded' | 'already_refunded'; order: Order };
 
 const now = () => new Date().toISOString();
 
@@ -49,14 +50,15 @@ export class OrderService {
         existing.eventIds.push(event.eventId);
         existing.updatedAt = now();
       }
-      // Duplicates never call the POS. A failed sync is retried via POST /orders/:id/sync.
+      // Duplicates never call the POS and never touch payment status, so a
+      // refunded order stays refunded. A failed sync is retried via POST /orders/:id/sync.
       return { result: 'duplicate', order: existing };
     }
 
     const order: Order = {
       ...event.order,
       eventIds: [event.eventId],
-      payment: { status: 'paid' },
+      payment: { status: 'paid', refund: null },
       pos: { status: 'pending', attempts: 0, reference: null, lastError: null },
       createdAt: now(),
       updatedAt: now(),
@@ -79,6 +81,31 @@ export class OrderService {
       throw new AppError(502, 'pos_sync_failed', `POS sync failed: ${order.pos.lastError}`, { order });
     }
     return { result: 'synced', order };
+  }
+
+  // Simulated full refund. Only for orders the POS has accepted.
+  // There is no await here, so check and update run as one step and two
+  // concurrent requests cannot both refund. If a real provider call (await) is
+  // added later, it needs the same claim pattern as the POS: set a 'refunding'
+  // status before the call.
+  refundOrder(id: string): RefundResult {
+    const order = this.getOrder(id);
+
+    if (order.payment.status === 'refunded') return { result: 'already_refunded', order };
+    if (order.pos.status !== 'synced') {
+      throw new AppError(
+        409,
+        'refund_not_allowed',
+        `Order ${id} can only be refunded after a successful POS sync (POS status: ${order.pos.status})`,
+        { order },
+      );
+    }
+
+    const refund = { amount: order.total, refundedAt: now() };
+    order.payment = { status: 'refunded', refund };
+    order.updatedAt = refund.refundedAt;
+    this.store.recordRefund({ orderId: id, ...refund });
+    return { result: 'refunded', order };
   }
 
   // The only place the POS is called. Returns true if the order is synced.
