@@ -57,10 +57,14 @@ h3 {
   margin-bottom: 12px;
 }
 
-label {
+label,
+.field {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+label {
   font-weight: 600;
 }
 

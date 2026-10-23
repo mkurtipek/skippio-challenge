@@ -1,4 +1,5 @@
-// Mirrors backend/src/types.ts (response shapes only). Money is integer cents.
+// The subset of the backend's response shapes the UI uses (see backend/src/types.ts and pos.ts).
+// Money is integer cents.
 
 export interface OrderItem {
   productId: string;

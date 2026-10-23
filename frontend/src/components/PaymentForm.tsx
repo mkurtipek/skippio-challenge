@@ -60,29 +60,31 @@ export function PaymentForm({ onOrder }: { onOrder: (order: Order) => void }) {
   }
 
   return (
-    <form className="card" onSubmit={submit}>
+    // noValidate: the backend is the single source of validation errors, shown below the form.
+    <form className="card" onSubmit={submit} noValidate>
       <h2>Payment event</h2>
 
       <div className="fields">
-        <label>
-          Event ID
+        <div className="field">
+          <label htmlFor="eventId">Event ID</label>
           <span className="inline">
-            <input value={eventId} onChange={(e) => setEventId(e.target.value)} />
-            <button type="button" onClick={() => setEventId(newId('evt'))}>
+            <input id="eventId" value={eventId} onChange={(e) => setEventId(e.target.value)} />
+            <button type="button" aria-label="New event ID" onClick={() => setEventId(newId('evt'))}>
               New
             </button>
           </span>
-        </label>
+        </div>
         <label>
           Event type
           <input value="payment.succeeded" readOnly />
         </label>
-        <label>
-          Order ID
+        <div className="field">
+          <label htmlFor="orderId">Order ID</label>
           <span className="inline">
-            <input value={orderId} onChange={(e) => setOrderId(e.target.value)} />
+            <input id="orderId" value={orderId} onChange={(e) => setOrderId(e.target.value)} />
             <button
               type="button"
+              aria-label="New order ID"
               onClick={() => {
                 setOrderId(newId('ord'));
                 setEventId(newId('evt'));
@@ -91,7 +93,7 @@ export function PaymentForm({ onOrder }: { onOrder: (order: Order) => void }) {
               New
             </button>
           </span>
-        </label>
+        </div>
         <label>
           Venue ID
           <input value={venueId} onChange={(e) => setVenueId(e.target.value)} />

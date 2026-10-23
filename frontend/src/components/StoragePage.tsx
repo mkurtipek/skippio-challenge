@@ -88,8 +88,8 @@ export function StoragePage() {
               </tr>
             </thead>
             <tbody>
-              {storage.refunds.map((r) => (
-                <tr key={r.orderId}>
+              {storage.refunds.map((r, i) => (
+                <tr key={i}>
                   <td>{r.orderId}</td>
                   <td className="num">{formatCents(r.amount)}</td>
                   <td>{new Date(r.refundedAt).toLocaleTimeString()}</td>
