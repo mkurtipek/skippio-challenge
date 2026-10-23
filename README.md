@@ -41,9 +41,11 @@ Restarting the backend clears all data.
 4. Click **Send payment event** again, then click **New** next to Event ID and send again. Both are reported as duplicates.
 5. Open **Storage**: 1 order, 1 POS transaction, 2 POS calls (one failed, one accepted).
 
-### Refund (curl; no refund UI by design)
+### Refund (UI test button or curl)
 
-On a freshly started backend:
+In the UI, after the retry above, click **Refund (test)**: the payment becomes `refunded` with €26.50. Clicking it again shows "Already refunded". On an order whose POS sync has failed it shows the `409` rejection.
+
+With curl, on a freshly started backend:
 
 ```bash
 curl -X POST localhost:3001/payment-events -H 'Content-Type: application/json' -d '{
@@ -59,7 +61,7 @@ curl -X POST localhost:3001/orders/ord_001/refund   # 200 already_refunded, noth
 curl localhost:3001/orders/ord_001                  # payment.status "refunded", refund.amount 2650
 ```
 
-Sending the payment event again after the refund returns `200 duplicate` and the order stays refunded. After a refund, **Look up** in the UI shows the refunded amount, and the Storage page lists it.
+Sending the payment event again after the refund returns `200 duplicate` and the order stays refunded. The Storage page lists every refund issued.
 
 ## Manual UI checklist
 
@@ -70,7 +72,8 @@ Sending the payment event again after the refund returns `200 duplicate` and the
 - [ ] Lookup: look up `ord_001` → details shown; look up `nope` → "Order nope not found"
 - [ ] Failure: new order (**New** next to Order ID) → POS `failed`, attempts 1, Retry enabled
 - [ ] Retry: click Retry → `synced`, reference shown, Retry disabled
-- [ ] Storage: one POS transaction per synced order; failed calls listed separately
+- [ ] Refund: on a synced order click **Refund (test)** → refunded €26.50; click again → "Already refunded"; on a failed order → "only be refunded after a successful POS sync"
+- [ ] Storage: one POS transaction per synced order; failed calls listed separately; one refund per refunded order
 
 ## Key decisions
 
@@ -98,7 +101,7 @@ The payment is recorded before the POS is called. A POS failure is stored on the
 
 **Simulated POS (`pos.ts`).** `toPosPayload()` maps venue, order reference, items, currency and total. `FakePos` waits 300 ms, fails each order's first attempt, then returns `pos_txn_000N`. It records every call and every accepted transaction separately from orders, and it deliberately does not deduplicate, so a duplicate caused by our code would be visible in tests and on the Storage page.
 
-**Refund.** Full refund only, only after a successful POS sync. It has no `await`, so check and update run as one step and concurrent requests cannot both refund. A repeat returns `200 already_refunded`. Each refund is also written to a refund log so a double refund would be visible. Duplicate payment events never touch payment status, so a refund is preserved. If a real provider call is added, it needs the same claim pattern as the POS (a `refunding` status set before the call).
+**Refund.** Full refund only, only after a successful POS sync. It has no `await`, so check and update run as one step and concurrent requests cannot both refund. A repeat returns `200 already_refunded`. Each refund is also written to a refund log so a double refund would be visible. Duplicate payment events never touch payment status, so a refund is preserved. If a real provider call is added, it needs the same claim pattern as the POS (a `refunding` status set before the call). The brief puts a refund UI out of scope; the **Refund (test)** button is a minimal testing aid and is always enabled so the backend's rejections can be seen.
 
 **Money** is integer cents everywhere. The UI converts euros to cents when building the payload (amounts with more than two decimals are rejected, never rounded) and formats cents as EUR only for display.
 
@@ -132,7 +135,6 @@ What has to change to run more than one backend process:
 - No automated frontend tests; the UI was checked manually against the checklist above.
 - The overlapping-request tests rely on a 100 ms simulated POS latency to create the overlap. They assert that the overlap happened (the second request sees `syncing`), so they fail rather than pass falsely, but a very slow machine could make them flaky. A controllable gate in `FakePos` would make them fully deterministic.
 - Timeouts after POS acceptance are out of scope and not handled (see the idempotency-key note above).
-- No refund UI (out of scope).
 
 ## What I would improve before production
 
@@ -144,7 +146,7 @@ What has to change to run more than one backend process:
 
 ## Git workflow
 
-Worked on `main` in small steps, each tested (`npm test`, typecheck, manual UI check) before committing and pushing: (1) backend and UI without the POS, (2) simulated POS, sync and retry, (3) refund, (4) review fixes and docs. Steps 2 to 4 are split into backend, frontend and docs commits. For a team I would use short-lived feature branches and pull requests with CI running tests and typecheck.
+Worked on `main` in small steps, each tested (`npm test`, typecheck, manual UI check) before committing and pushing: (1) backend and UI without the POS, (2) simulated POS, sync and retry, (3) refund, (4) review fixes and docs, (5) a refund test button. Steps 2 to 4 are split into backend, frontend and docs commits. For a team I would use short-lived feature branches and pull requests with CI running tests and typecheck.
 
 ## Time spent
 
