@@ -9,7 +9,7 @@ export const Badge = ({ status }: { status: string }) => <span className={`badge
 export function OrderPanel({ order, onOrder }: { order: Order | null; onOrder: (order: Order | null) => void }) {
   const [lookupId, setLookupId] = useState('ord_001');
   const [loading, setLoading] = useState(false);
-  const [syncing, setSyncing] = useState(false);
+  const [busy, setBusy] = useState<'sync' | 'refund' | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
 
   // When a different order is shown (e.g. after a submit), sync the field and clear old messages.
@@ -37,7 +37,7 @@ export function OrderPanel({ order, onOrder }: { order: Order | null; onOrder: (
 
   async function retrySync() {
     if (!order) return;
-    setSyncing(true);
+    setBusy('sync');
     setFeedback(null);
     try {
       const { data } = await api.syncOrder(order.id);
@@ -54,7 +54,31 @@ export function OrderPanel({ order, onOrder }: { order: Order | null; onOrder: (
       if (err instanceof ApiError && err.body?.order) onOrder(err.body.order);
       setFeedback({ kind: 'error', text: errorMessage(err) });
     } finally {
-      setSyncing(false);
+      setBusy(null);
+    }
+  }
+
+  // Test helper: the brief puts a refund UI out of scope. The button is always
+  // enabled so the backend's answers (refunded, already refunded, not allowed) can all be seen.
+  async function refund() {
+    if (!order) return;
+    setBusy('refund');
+    setFeedback(null);
+    try {
+      const { data } = await api.refundOrder(order.id);
+      onOrder(data.order);
+      setFeedback({
+        kind: 'success',
+        text:
+          data.result === 'refunded'
+            ? `Refunded ${formatCents(data.order.payment.refund!.amount)}.`
+            : 'Already refunded. Nothing changed.',
+      });
+    } catch (err) {
+      if (err instanceof ApiError && err.body?.order) onOrder(err.body.order);
+      setFeedback({ kind: 'error', text: errorMessage(err) });
+    } finally {
+      setBusy(null);
     }
   }
 
@@ -112,11 +136,17 @@ export function OrderPanel({ order, onOrder }: { order: Order | null; onOrder: (
           </dl>
 
           <div className="actions">
-            <button type="button" className="primary" onClick={retrySync} disabled={!canRetry || syncing}>
-              {syncing ? 'Retrying…' : 'Retry POS sync'}
+            <button type="button" className="primary" onClick={retrySync} disabled={!canRetry || busy !== null}>
+              {busy === 'sync' ? 'Retrying…' : 'Retry POS sync'}
             </button>
-            {!canRetry && <span className="hint">Retry is available when the POS sync has failed.</span>}
+            <button type="button" onClick={refund} disabled={busy !== null}>
+              {busy === 'refund' ? 'Refunding…' : 'Refund (test)'}
+            </button>
           </div>
+          <p className="hint">
+            Retry is available when the POS sync has failed. Refund (test) always calls the API, so you can also see
+            its rejections.
+          </p>
         </>
       )}
 

@@ -44,6 +44,11 @@ export interface SyncResult {
   order: Order;
 }
 
+export interface RefundResult {
+  result: 'refunded' | 'already_refunded';
+  order: Order;
+}
+
 export interface PosCall {
   orderReference: string;
   attempt: number;

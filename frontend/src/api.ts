@@ -1,4 +1,4 @@
-import type { Order, PaymentEvent, PaymentResult, Storage, SyncResult } from './types';
+import type { Order, PaymentEvent, PaymentResult, RefundResult, Storage, SyncResult } from './types';
 
 // body is kept so the UI can use extra fields, e.g. the current order on a 409/502.
 export class ApiError extends Error {
@@ -30,6 +30,7 @@ export const api = {
   sendPaymentEvent: (event: PaymentEvent) => request<PaymentResult>('POST', '/payment-events', event),
   getOrder: (id: string) => request<Order>('GET', `/orders/${encodeURIComponent(id)}`),
   syncOrder: (id: string) => request<SyncResult>('POST', `/orders/${encodeURIComponent(id)}/sync`),
+  refundOrder: (id: string) => request<RefundResult>('POST', `/orders/${encodeURIComponent(id)}/refund`),
   getStorage: () => request<Storage>('GET', '/debug/storage'),
 };
 
